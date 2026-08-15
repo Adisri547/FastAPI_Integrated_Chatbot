@@ -5,6 +5,7 @@ A locally-hosted, multi-turn conversational agent built with **LangGraph** and a
 > Also referred to as the **PDF-RAG Chatbot** — this repo replaces an earlier Streamlit prototype with a custom frontend and a proper HTTP API.
 
 ---
+<img width="1907" height="863" alt="image" src="https://github.com/user-attachments/assets/268cb643-1352-478a-bade-d0e814fbf038" />
 
 ## Features
 
