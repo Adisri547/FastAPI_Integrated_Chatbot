@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Query Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg: #eef2ef;
+    --paper: #ffffff;
+    --paper-raised: #f6f8f6;
+    --border: #d8e0da;
+    --ink: #16261f;
+    --muted: #6c7d73;
+    --accent: #1f6f5c;      /* muted forest teal — not the usual terracotta */
+    --accent-soft: #dcece6;
+    --user-bubble: #e7ebfb; /* soft periwinkle */
+    --user-ink: #29335c;
+    --radius: 8px;
+
+    --font-display: "Fraunces", serif;
+    --font-body: "Inter", sans-serif;
+    --font-mono: "JetBrains Mono", monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+  }
+
+  .app {
+    display: grid;
+    grid-template-columns: 268px 1fr;
+    height: 100vh;
+  }
+
+  /* ---------- Sidebar ---------- */
+
+  .sidebar {
+    background: var(--paper);
+    border-right: 1px solid var(--border);
+    padding: 22px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    overflow-y: auto;
+  }
+
+  .brand {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 19px;
+    margin-bottom: 4px;
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 10px;
+  }
+  .brand-mark { color: var(--accent); font-size: 16px; }
+
+  .btn-new {
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .btn-new:hover { background: var(--accent); }
+
+  .section-label {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-top: 8px;
+    border-bottom: 1px dotted var(--border);
+    padding-bottom: 4px;
+  }
+
+  .thread-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    max-height: 220px;
+    overflow-y: auto;
+  }
+
+  .thread-item {
+    padding: 8px 9px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--muted);
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border: 1px solid transparent;
+  }
+  .thread-item:hover { background: var(--paper-raised); color: var(--ink); }
+  .thread-item.active {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .drop-zone {
+    border: 1.5px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 18px 10px;
+    text-align: center;
+    cursor: pointer;
+    background: var(--paper-raised);
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .drop-zone-text { display: flex; flex-direction: column; gap: 2px; }
+  .drop-zone-text strong { font-size: 13px; }
+  .drop-zone-text span { font-size: 11px; color: var(--muted); }
+
+  .doc-status {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.5;
+    word-break: break-word;
+  }
+  .doc-status.ready { color: var(--accent); }
+
+  /* ---------- Main chat ---------- */
+
+  .main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .chat-header {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    background: var(--paper);
+  }
+
+  .chat-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 18px;
+  }
+
+  .chat-subtitle {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+    letter-spacing: 0.02em;
+  }
+
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 26px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .empty-state {
+    margin: auto;
+    color: var(--muted);
+    font-size: 13px;
+    text-align: center;
+  }
+
+  .bubble {
+    max-width: 66%;
+    padding: 13px 15px;
+    border-radius: var(--radius);
+    font-size: 14px;
+    line-height: 1.55;
+    white-space: pre-wrap;
+  }
+
+  .bubble.user {
+    align-self: flex-end;
+    background: var(--user-bubble);
+    color: var(--user-ink);
+    border-bottom-right-radius: 3px;
+  }
+
+  .bubble.assistant {
+    align-self: flex-start;
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-bottom-left-radius: 3px;
+  }
+
+  /* signature element: a "stamped" tool-activity readout, ledger-style */
+  .tool-strip {
+    margin: 0 28px 12px;
+    align-self: flex-start;
+    display: inline-flex;
+    width: fit-content;
+    padding: 6px 12px;
+    border: 1.5px dashed var(--accent);
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    letter-spacing: 0.04em;
+    color: var(--accent);
+    background: var(--accent-soft);
+    text-transform: uppercase;
+  }
+
+  .composer {
+    display: flex;
+    gap: 10px;
+    padding: 16px 28px 24px;
+    border-top: 1px solid var(--border);
+    background: var(--paper);
+  }
+
+  #messageInput {
+    flex: 1;
+    background: var(--paper-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--ink);
+    padding: 12px 14px;
+    font-size: 14px;
+    font-family: var(--font-body);
+  }
+  #messageInput:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  #sendBtn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    padding: 0 22px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  #sendBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  @media (max-width: 720px) {
+    .app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+    .sidebar { flex-direction: row; flex-wrap: wrap; max-height: 220px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark">◆</span>
+      <span>Query Desk</span>
+    </div>
+
+    <button id="newThreadBtn" class="btn-new">+ New thread</button>
+
+    <div class="section-label">Threads</div>
+    <div id="threadList" class="thread-list"></div>
+
+    <div class="section-label">Document</div>
+    <div id="dropZone" class="drop-zone">
+      <input id="fileInput" type="file" accept="application/pdf" hidden />
+      <div class="drop-zone-text">
+        <strong>Drop a PDF</strong>
+        <span>or click to browse</span>
+      </div>
+    </div>
+    <div id="docStatus" class="doc-status">No document indexed</div>
+  </aside>
+
+  <main class="main">
+    <header class="chat-header">
+      <div class="chat-title" id="chatTitle">Untitled thread</div>
+      <div class="chat-subtitle">web search · stock lookup · calculator · pdf&nbsp;rag</div>
+    </header>
+
+    <div id="messages" class="messages">
+      <div class="empty-state">Ask something, or upload a PDF and ask about it.</div>
+    </div>
+
+    <div id="toolStrip" class="tool-strip" hidden>
+      <span id="toolStripText"></span>
+    </div>
+
+    <form id="composer" class="composer">
+      <input id="messageInput" type="text" placeholder="Ask Query Desk…" autocomplete="off" />
+      <button type="submit" id="sendBtn">Send</button>
+    </form>
+  </main>
+
+</div>
+
+<script>
+const API_BASE = ""; // same origin
+
+let currentThreadId = null;
+
+const threadListEl = document.getElementById("threadList");
+const chatTitleEl = document.getElementById("chatTitle");
+const messagesEl = document.getElementById("messages");
+const composerEl = document.getElementById("composer");
+const messageInputEl = document.getElementById("messageInput");
+const sendBtnEl = document.getElementById("sendBtn");
+const dropZoneEl = document.getElementById("dropZone");
+const fileInputEl = document.getElementById("fileInput");
+const docStatusEl = document.getElementById("docStatus");
+const toolStripEl = document.getElementById("toolStrip");
+const toolStripTextEl = document.getElementById("toolStripText");
+
+init();
+
+async function init() {
+  document.getElementById("newThreadBtn").addEventListener("click", createThread);
+  composerEl.addEventListener("submit", onSend);
+  dropZoneEl.addEventListener("click", () => fileInputEl.click());
+  fileInputEl.addEventListener("change", (e) => uploadPdf(e.target.files[0]));
+  dropZoneEl.addEventListener("dragover", (e) => { e.preventDefault(); dropZoneEl.classList.add("dragover"); });
+  dropZoneEl.addEventListener("dragleave", () => dropZoneEl.classList.remove("dragover"));
+  dropZoneEl.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropZoneEl.classList.remove("dragover");
+    if (e.dataTransfer.files[0]) uploadPdf(e.dataTransfer.files[0]);
+  });
+
+  await refreshThreadList();
+  if (!currentThreadId) await createThread();
+}
+
+async function refreshThreadList() {
+  const res = await fetch(`${API_BASE}/api/threads`);
+  const threads = await res.json();
+  threadListEl.innerHTML = "";
+  threads.forEach((t) => {
+    const item = document.createElement("div");
+    item.className = "thread-item" + (t.thread_id === currentThreadId ? " active" : "");
+    item.textContent = t.thread_id;
+    item.title = t.thread_id;
+    item.addEventListener("click", () => selectThread(t.thread_id));
+    threadListEl.appendChild(item);
+  });
+}
+
+async function createThread() {
+  const res = await fetch(`${API_BASE}/api/threads`, { method: "POST" });
+  const data = await res.json();
+  currentThreadId = data.thread_id;
+  await refreshThreadList();
+  await selectThread(currentThreadId);
+}
+
+async function selectThread(threadId) {
+  currentThreadId = threadId;
+  chatTitleEl.textContent = threadId;
+  document.querySelectorAll(".thread-item").forEach((el) => {
+    el.classList.toggle("active", el.textContent === threadId);
+  });
+
+  const res = await fetch(`${API_BASE}/api/threads/${threadId}/history`);
+  const data = await res.json();
+  messagesEl.innerHTML = "";
+  if (data.messages.length === 0) {
+    messagesEl.innerHTML = `<div class="empty-state">Ask something, or upload a PDF and ask about it.</div>`;
+  } else {
+    data.messages.forEach((m) => appendBubble(m.role, m.content));
+  }
+
+  docStatusEl.textContent = "No document indexed";
+  docStatusEl.classList.remove("ready");
+}
+
+async function uploadPdf(file) {
+  if (!file || !currentThreadId) return;
+  docStatusEl.textContent = "Indexing…";
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch(`${API_BASE}/api/threads/${currentThreadId}/upload`, {
+    method: "POST",
+    body: form,
+  });
+  if (!res.ok) {
+    docStatusEl.textContent = "Upload failed";
+    return;
+  }
+  const summary = await res.json();
+  docStatusEl.textContent = `${summary.filename} · ${summary.chunks} chunks`;
+  docStatusEl.classList.add("ready");
+}
+
+function appendBubble(role, text) {
+  const empty = messagesEl.querySelector(".empty-state");
+  if (empty) empty.remove();
+  const bubble = document.createElement("div");
+  bubble.className = `bubble ${role}`;
+  bubble.textContent = text;
+  messagesEl.appendChild(bubble);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+  return bubble;
+}
+
+async function onSend(e) {
+  e.preventDefault();
+  const text = messageInputEl.value.trim();
+  if (!text || !currentThreadId) return;
+
+  appendBubble("user", text);
+  messageInputEl.value = "";
+  sendBtnEl.disabled = true;
+
+  const assistantBubble = appendBubble("assistant", "");
+  showToolStrip("thinking…");
+
+  try {
+    const form = new URLSearchParams();
+    form.append("message", text);
+
+    const res = await fetch(`${API_BASE}/api/threads/${currentThreadId}/chat`, {
+      method: "POST",
+      body: form,
+    });
+
+    await readSseStream(res, (evt, data) => {
+      if (evt === "tool") {
+        showToolStrip(`running ${data.name}…`);
+      } else if (evt === "token") {
+        hideToolStrip();
+        assistantBubble.textContent += data.text;
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      } else if (evt === "error") {
+        assistantBubble.textContent += `\n[error: ${data.message}]`;
+      } else if (evt === "done") {
+        hideToolStrip();
+      }
+    });
+  } finally {
+    sendBtnEl.disabled = false;
+    await refreshThreadList();
+  }
+}
+
+function showToolStrip(text) {
+  toolStripEl.hidden = false;
+  toolStripTextEl.textContent = text;
+}
+function hideToolStrip() {
+  toolStripEl.hidden = true;
+}
+
+// Minimal SSE parser for a fetch() streaming response body.
+// (EventSource can't be used here because it only supports GET requests.)
+async function readSseStream(response, onEvent) {
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    let boundary;
+    while ((boundary = buffer.indexOf("\n\n")) !== -1) {
+      const rawEvent = buffer.slice(0, boundary);
+      buffer = buffer.slice(boundary + 2);
+
+      let eventType = "message";
+      let dataLine = "";
+      rawEvent.split("\n").forEach((line) => {
+        if (line.startsWith("event:")) eventType = line.slice(6).trim();
+        if (line.startsWith("data:")) dataLine += line.slice(5).trim();
+      });
+
+      if (dataLine) {
+        try {
+          onEvent(eventType, JSON.parse(dataLine));
+        } catch {
+          /* ignore malformed frame */
+        }
+      }
+    }
+  }
+}
+</script>
+</body>
+</html>
